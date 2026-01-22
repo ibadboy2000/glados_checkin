@@ -54,7 +54,11 @@ const notify = async (contents) => {
 }
 
 const main = async () => {
-  await notify(await glados())
+  const result = await glados()
+  // 1. 把结果打印到 GitHub 的日志窗口
+  console.log(result) 
+  // 2. 发送通知
+  await notify(result)
 }
 
 main()
