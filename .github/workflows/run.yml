@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
   schedule:
+    # 每天 UTC 时间 04:10 和 16:10 运行（北京时间 12:10 和 00:10）
     - cron: '10 4,16 * * *'
 
 jobs:
@@ -11,11 +12,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: npm ci
-      - run: npm run main
+          
+      # 如果你的项目只有 main.js 没有 package.json，可以将下面两行换成直接运行 node main.js
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          else
+            echo "No package.json found, skipping npm ci"
+          fi
+
+      - name: Run GLaDOS Checkin
+        run: node main.js
         env:
+          # 1. 基础签到与 PushPlus
           GLADOS: ${{ secrets.GLADOS }}
           NOTIFY: ${{ secrets.NOTIFY }}
+          
+          # 2. Server 酱
+          SCTKEY: ${{ secrets.SCTKEY }}
+          
+          # 3. Matrix 强力提醒配置
+          MATRIX_HS_URL: ${{ secrets.MATRIX_HS_URL }}
+          MATRIX_ROOM_ID: ${{ secrets.MATRIX_ROOM_ID }}
+          MATRIX_TOKEN: ${{ secrets.MATRIX_TOKEN }}
