@@ -1,6 +1,6 @@
 /**
  * GLaDOS 自动签到脚本 (GitHub Actions 版)
- * 支持通知：Matrix, ServerChan, PushPlus
+ * 支持通知：Discord, ServerChan, PushPlus
  */
 
 const glados = async () => {
@@ -38,36 +38,29 @@ const glados = async () => {
 }
 
 /**
- * Matrix 通知 (核心：失败时触发手机长铃声)
- * 需要变量：MATRIX_HS_URL, MATRIX_ROOM_ID, MATRIX_TOKEN
+ * Discord 通知
+ * 需要变量：DISCORD_WEBHOOK
  */
-const notifyMatrix = async (contents) => {
-  const hsUrl = process.env.MATRIX_HS_URL;    // 示例: https://i.suwei.homes:58008
-  const roomId = process.env.MATRIX_ROOM_ID;  // 示例: !xxxx:i.suwei.homes
-  const token = process.env.MATRIX_TOKEN;    // 示例: syt_xxxx
-
-  if (!hsUrl || !roomId || !token) return;
+const notifyDiscord = async (contents) => {
+  const webhookUrl = process.env.DISCORD_WEBHOOK;
+  if (!webhookUrl) return;
 
   const isError = contents[0].includes('Failed') || contents[0].includes('Error');
-  // 失败时添加 @room 触发你在手机端设置的 30 秒长铃声
-  const prefix = isError ? "@room 🚨 " : "✅ ";
-  const bodyText = `${prefix}${contents[0]}\n${contents.slice(1).join('\n')}`;
+  // 失败时可以在前面加点表情引起注意，你也可以加上 @everyone (需确保 Discord 频道权限允许)
+  const prefix = isError ? "🚨 **[警报]** " : "✅ ";
+  const textContent = `${prefix}**${contents[0]}**\n${contents.slice(1).join('\n')}`;
 
-  const url = `${hsUrl}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message?access_token=${token}`;
-  
   try {
-    await fetch(url, {
+    await fetch(webhookUrl, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        "msgtype": "m.text",
-        "body": bodyText,
-        "format": "org.matrix.custom.html",
-        "formatted_body": `<strong>${bodyText.replace(/\n/g, '<br>')}</strong>`
+        content: textContent
       })
     });
-    console.log("Matrix 通知发送成功");
+    console.log("Discord 通知发送成功");
   } catch (e) {
-    console.error("Matrix 通知发送失败:", e);
+    console.error("Discord 通知发送失败:", e);
   }
 }
 
@@ -134,7 +127,7 @@ const main = async () => {
   await Promise.allSettled([
     notifyPushPlus(result),
     notifyServerChan(result),
-    notifyMatrix(result)
+    notifyDiscord(result)
   ]);
 }
 
