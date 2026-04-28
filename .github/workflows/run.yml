@@ -10,14 +10,18 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    
+    # 【新增1】必须赋予 GITHUB_TOKEN 代码写入权限，保活插件才能自动提交
+    permissions:
+      contents: write 
+
     steps:
       - uses: actions/checkout@v3
-      
+        
       - uses: actions/setup-node@v3
         with:
           node-version: 18
           
-      # 如果你的项目只有 main.js 没有 package.json，可以将下面两行换成直接运行 node main.js
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
@@ -40,3 +44,7 @@ jobs:
           MATRIX_HS_URL: ${{ secrets.MATRIX_HS_URL }}
           MATRIX_ROOM_ID: ${{ secrets.MATRIX_ROOM_ID }}
           MATRIX_TOKEN: ${{ secrets.MATRIX_TOKEN }}
+
+      # 【新增2】在所有任务完成后，调用保活插件
+      - name: Keep GitHub Actions Alive
+        uses: gautamkrishnar/keepalive-workflow@v2
