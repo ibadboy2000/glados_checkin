@@ -40,10 +40,8 @@ jobs:
           # 2. Server 酱
           SCTKEY: ${{ secrets.SCTKEY }}
           
-          # 3. Matrix 强力提醒配置
-          MATRIX_HS_URL: ${{ secrets.MATRIX_HS_URL }}
-          MATRIX_ROOM_ID: ${{ secrets.MATRIX_ROOM_ID }}
-          MATRIX_TOKEN: ${{ secrets.MATRIX_TOKEN }}
+          # 3. Discord 通知 (已替换原有的 Matrix 配置)
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
       # 【进阶保活逻辑】纯原生命令：判断距离上次提交是否超过 50 天，超过才进行空提交
       - name: Keep GitHub Actions Alive conditionally
