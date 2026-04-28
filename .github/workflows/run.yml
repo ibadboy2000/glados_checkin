@@ -11,7 +11,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     
-    # 【新增1】必须赋予 GITHUB_TOKEN 代码写入权限，保活插件才能自动提交
+    # 【必须保留】赋予自带的 GITHUB_TOKEN 代码写入权限，以便脚本自动推送
     permissions:
       contents: write 
 
@@ -45,6 +45,26 @@ jobs:
           MATRIX_ROOM_ID: ${{ secrets.MATRIX_ROOM_ID }}
           MATRIX_TOKEN: ${{ secrets.MATRIX_TOKEN }}
 
-      # 【新增2】在所有任务完成后，调用保活插件
-      - name: Keep GitHub Actions Alive
-        uses: gautamkrishnar/keepalive-workflow@v2
+      # 【进阶保活逻辑】纯原生命令：判断距离上次提交是否超过 50 天，超过才进行空提交
+      - name: Keep GitHub Actions Alive conditionally
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 获取最后一次代码提交的时间戳
+          LAST_COMMIT_TS=$(git log -1 --format="%ct")
+          # 获取当前的系统时间戳
+          NOW_TS=$(date +%s)
+          # 计算时间差，并转换为天数 (86400 秒 = 1 天)
+          DIFF_DAYS=$(((NOW_TS - LAST_COMMIT_TS) / 86400))
+          
+          echo "距离仓库上次提交已经过去了 $DIFF_DAYS 天"
+          
+          # 如果距离上次提交大于 50 天，才进行一次空提交来重置 60 天闲置倒计时
+          if [ "$DIFF_DAYS" -gt 50 ]; then
+            echo "超过 50 天，执行保活提交..."
+            git commit --allow-empty -m "chore: keep alive GitHub Actions"
+            git push
+          else
+            echo "未满 50 天，一切安全，跳过保活提交。"
+          fi
