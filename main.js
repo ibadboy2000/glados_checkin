@@ -3,9 +3,8 @@
  * 支持通知：Discord, ServerChan, PushPlus
  */
 
-const glados = async () => {
-  const cookie = process.env.GLADOS
-  if (!cookie) return
+const glados = async (cookie) => {
+  if (!cookie) return null;
   try {
     const headers = {
       'cookie': cookie,
@@ -114,20 +113,47 @@ const notifyPushPlus = async (contents) => {
 }
 
 const main = async () => {
-  const result = await glados();
-  if (!result) {
+  const gladosStr = process.env.GLADOS;
+  if (!gladosStr) {
     console.log("未配置 GLADOS Cookie，脚本终止");
     return;
   }
 
+  // 支持通过换行符或 & 来分隔多个账号的 cookie
+  const cookies = gladosStr.split(/[\n&]/).map(s => s.trim()).filter(Boolean);
+  
+  const allResults = [];
+  const titles = [];
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i];
+    console.log(`正在执行第 ${i + 1} 个账号的签到...`);
+    const result = await glados(cookie);
+    if (result) {
+      titles.push(result[0]);
+      allResults.push(`**账号 ${i + 1}**:`);
+      allResults.push(...result);
+      allResults.push('---');
+    }
+  }
+
+  if (allResults.length === 0) {
+    console.log("没有获取到有效的签到结果");
+    return;
+  }
+
   // 1. 打印日志
-  console.log(result);
+  console.log(allResults.join('\n'));
+  
+  // 综合通知的标题，包含成功和失败的数量
+  const successCount = titles.filter(t => t.includes('Success')).length;
+  const title = `GLaDOS 签到: ${successCount}成功 / ${cookies.length}总计`;
+  const contents = [title, ...allResults];
   
   // 2. 依次执行多平台通知
   await Promise.allSettled([
-    notifyPushPlus(result),
-    notifyServerChan(result),
-    notifyDiscord(result)
+    notifyPushPlus(contents),
+    notifyServerChan(contents),
+    notifyDiscord(contents)
   ]);
 }
 
